@@ -1,0 +1,117 @@
+FinSafe AI: 4-Hour Build Plan
+0. Reality check (read this first)
+With 4 hours, the winning move is a polished demo with one real integration at most, not three real integrations.
+Platform	Auth reality	Decision
+Zoho Books	OAuth 2.0. The Zoho API Console has a “Self Client” option that gives you tokens in minutes without building a redirect flow.	Try live (budget 30 min, hard stop)
+Oracle NetSuite	OAuth 2.0 needs a NetSuite account and an integration record set up by an admin. There’s no quick free trial.	Mock (looks real in the UI, runs on demo data)
+Odoo	The external API usually uses API keys or JSON-RPC, not a standard OAuth consent flow. Needs an Odoo instance.	Mock (optionally live if you already have an instance)
+Golden rule: the app must work in full Demo Mode with synthetic data. If Zoho fails, you lose nothing. In the demo, be honest: “Zoho Books is live; NetSuite and Odoo connectors run on sample data using the same unified schema.”
+Scope for 4 hours: two pages as requested (Home, Integrations), plus one Dashboard page, because without it there’s nothing to demo. The v0 prompt below covers the two pages, and I’ll write the dashboard prompt next if you want.
+1. Product definition
+FinSafe AI is an AI financial risk copilot for SMBs. It connects to accounting and ERP systems, detects fraud and financial risk, predicts cash problems, and tells the owner what to do this week.
+USP (put this on the home page):
+One risk view across Zoho Books, NetSuite, and Odoo, unified into a single schema.
+Predicts, not just reports: cash runway forecast and what-if simulator.
+Catches fraud and anomalies: duplicate invoices, vendor price spikes.
+Trustworthy AI: all numbers computed by code, Gemini only explains. Every alert shows evidence.
+Read-only and human-in-the-loop: it drafts, you approve.
+2. Hour-by-hour schedule
+Time	Task	Output
+0:00-0:20	Create repo, GCP/AI Studio key, Zoho Self Client; run v0 prompt	Frontend generating
+0:20-0:50	Build synthetic dataset (JSON) with planted issues	demo_data.json
+0:50-2:00	Backend: schema, 4 engines, health score, API endpoints	Working /api/*
+2:00-2:40	Wire frontend to backend, Gemini explanations, dashboard page	End-to-end demo mode
+2:40-3:10	Zoho live connection (hard stop at 30 min)	Live or skipped
+3:10-3:40	Deploy (Cloud Run + Vercel), test, record demo video	Live link, video
+3:40-4:00	README, architecture image, submit	Submitted
+If you fall behind, cut in this order: Zoho live, then what-if simulator, then dark mode, then the late-payment engine.
+3. Architecture
+Next.js (v0) frontend  ──►  FastAPI backend (Cloud Run)
+                                   │
+        ┌──────────────────────────┼───────────────────────────┐
+   Connectors                 Engines (pure Python)        Gemini layer
+   zoho (live/mock)           cash_runway                  explain_findings
+   netsuite (mock)            duplicate_invoices           draft_email
+   odoo (mock)                vendor_price_spike           answer_question (chat)
+        │                     late_payment_risk
+        ▼                     health_score
+   Unified schema (in-memory / SQLite)
+Use in-memory or SQLite. Don’t set up BigQuery in 4 hours.
+4. Backend plan
+Stack: Python 3.11, FastAPI, pandas, scikit-learn (only if time), google-genai SDK, httpx. Use the latest Gemini Flash model available in AI Studio.
+Folder structure
+backend/
+  main.py                # FastAPI app, routes, CORS
+  schema.py              # Pydantic models
+  data/demo_data.json    # synthetic company
+  connectors/
+    base.py              # Connector interface
+    zoho.py              # live OAuth + mapper
+    netsuite.py          # mock
+    odoo.py              # mock
+  engines/
+    cash.py
+    duplicates.py
+    vendor_spike.py
+    late_pay.py
+    score.py
+  ai/
+    gemini.py            # explain, email draft, chat
+  store.py               # connected sources + normalized data
+Unified schema (keep it minimal)
+Invoice: id, customer, amount, issue_date, due_date, paid_date|null, status, source
+Bill: id, vendor, amount, issue_date, due_date, paid_date|null, status, source
+Payment (optional): date, amount, direction
+CashAccount: current_balance
+Insurance policy is optional. Skip it unless you finish early.
+API endpoints
+Method	Path	Purpose
+GET	/api/connectors	List 3 connectors with status
+POST	/api/connectors/{id}/connect	Connect (demo mode, or starts OAuth for Zoho)
+POST	/api/connectors/{id}/disconnect	Disconnect and clear data
+GET	/auth/zoho/callback	OAuth callback (only if doing the redirect flow)
+POST	/api/demo/load	Load synthetic data as if synced
+GET	/api/analysis	Runs all engines, returns health score and findings
+POST	/api/whatif	Body: {collect_invoice_ids:[], delay_bill_ids:[]} returns new runway
+POST	/api/draft-email	Body: {invoice_id} returns Gemini-drafted collection email
+POST	/api/chat	Body: {question} returns grounded answer
+Engine specs (deterministic logic)
+Cash runway (cash.py): Start from current balance. Build a day-by-day projection for 90 days: add unpaid invoices on due_date (shifted by that customer’s average delay), subtract unpaid bills on due_date, subtract average recurring daily operating spend (from the last 90 days of paid bills). Runway is the first day the balance goes below 0. Return the daily series (for the chart), the runway day, and the top drivers.
+Duplicates (duplicates.py): Flag invoice or bill pairs with the same counterparty and same amount within 7 days, or amounts within 1% with similar numbering. Return both IDs as evidence.
+Vendor price spike (vendor_spike.py): For each vendor, compare the latest bill with the median of the previous bills. Flag if more than 25% higher.
+Late-payment risk (late_pay.py): Per customer, calculate average days late and the share of invoices paid late. Score as risk = 0.6*late_ratio + 0.4*min(avg_days_late/30, 1). Rank customers.
+Health score (score.py): Start at 100. Subtract points for short runway (for example under 30 days: -35, under 60: -20), each high-severity finding, and a high overdue receivables ratio. Clamp 0-100.
+Finding object (every engine returns this shape)
+json
+{
+  "id": "f_001",
+  "type": "duplicate_invoice",
+  "severity": "high",
+  "title": "Possible duplicate invoice",
+  "amount_at_risk": 84500,
+  "evidence": ["INV-1042", "INV-1047"],
+  "explanation": null
+}
+Gemini layer (gemini.py), three functions only
+explain(findings, summary): system prompt says “You are a financial risk analyst. Use ONLY the numbers provided. Never compute or invent figures. Explain each finding in 2 sentences and give one action. Return JSON.”
+draft_email(invoice, customer_stats): polite, firm collection email.
+chat(question, analysis_json): answer only from the analysis JSON, otherwise say it doesn’t have that data.
+Synthetic dataset (demo_data.json): One fictional company, “Sharma Distributors”. 12 months of invoices and bills. Plant these on purpose:
+A duplicate invoice pair (same customer, same amount, 3 days apart).
+A vendor price spike (one vendor’s latest bill about 40% above its median).
+A chronically late customer (pays about 25 days late on average, with a large open invoice).
+A cash crunch about 6 weeks out (big bills landing before big receivables).
+Current balance sized so runway is about 40-50 days.
+Ask me and I’ll generate this JSON and the full backend code.
+Zoho live connector (only if time allows)
+Use the Zoho API Console, create a Self Client, and generate a grant token with scopes ZohoBooks.invoices.READ, ZohoBooks.bills.READ, ZohoBooks.settings.READ. Exchange it for access and refresh tokens, and store them in env vars.
+Call GET https://www.zohoapis.in/books/v3/invoices?organization_id=... (use the data-center domain matching your account: .in, .com, .eu).
+Map the response to your Invoice and Bill schema.
+In the UI, the Zoho “Connect” button can trigger this and show “Connected” on success. Anything beyond this is stretch.
+5. Frontend plan
+Stack: Next.js (App Router), TypeScript, Tailwind, shadcn/ui, lucide-react, recharts. v0 generates this natively.
+Pages
+/ Home: explains the purpose and USP and drives users to connect.
+/integrations Integrations: connect Zoho Books, NetSuite, Odoo, or load demo data.
+/dashboard (add after v0 output): health score, runway chart, findings list, what-if sliders, email drafter, chat.
+Integration with backend: a single lib/api.ts with NEXT_PUBLIC_API_URL and functions getConnectors(), connect(id), disconnect(id), loadDemo(). Until the backend is ready, v0 uses mocked state, and you swap in the fetch calls later.

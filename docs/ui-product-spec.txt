@@ -1,0 +1,209 @@
+FinSafe AI — UI and Product Specification
+==========================================
+
+1. Product overview
+-------------------
+Product: FinSafe AI
+Category: AI-powered financial risk copilot for SMB owners, finance managers, and CFOs.
+Primary promise: identify financial problems before they become expensive, using connected accounting and ERP data.
+Tone: trustworthy, calm, professional, modern, precise; visually closer to Stripe or Ramp than crypto products.
+Core behavior: connect read-only finance systems, normalize data, detect anomalies/fraud, forecast cash runway, and recommend prioritized actions.
+
+2. Technical foundation
+-----------------------
+- Framework: Next.js App Router, TypeScript.
+- Styling: Tailwind CSS v4 with shadcn/ui semantic design tokens.
+- Icons: lucide-react.
+- Motion: framer-motion for subtle fade-up entrance animations.
+- Charts: Recharts.
+- Feedback: sonner toasts.
+- Responsive targets: mobile, tablet, desktop.
+- Pages: exactly two application pages for now: / and /integrations.
+- Shared UI: Navbar, Footer, Brand, ThemeToggle, reusable cards, dialogs, status badges.
+- API abstraction: lib/api.ts exposes getConnectors, connectConnector, disconnectConnector, loadDemoData. Current implementation simulates requests; future backend endpoints are /api/connectors, /api/connectors/{id}/connect, /api/connectors/{id}/disconnect, and /api/demo/load. Base URL is NEXT_PUBLIC_API_URL.
+
+3. Visual design system
+-----------------------
+Theme:
+- Light theme is the default and must render regardless of OS/browser dark-mode preference.
+- Optional manual dark mode remains available through the navbar sun/moon control.
+- Light background: white and very soft slate gray.
+- Main text: slate-900 / near-black.
+
+Color roles:
+- Primary: deep indigo/blue, approximately #2F4BFF through #1E2A78.
+- Safe/connected: emerald green, approximately #10B981.
+- Warning: amber.
+- Danger: red.
+- Surfaces: white cards, muted slate sections, subtle indigo/emerald gradients.
+- Use semantic tokens such as bg-background, text-foreground, text-muted-foreground, bg-card, border-border, bg-primary, and text-primary.
+
+Typography:
+- Geist or Inter-style sans serif.
+- Large, bold, tight hero headings.
+- Body copy is readable with generous line-height.
+- Use font weights from medium through bold; avoid decorative type.
+
+Shape and depth:
+- Rounded cards, generally rounded-xl to rounded-2xl.
+- 1px subtle borders.
+- Soft shadows, especially on product preview and CTA surfaces.
+- Generous whitespace and max content width around 1200px / max-w-6xl.
+- Avoid visual clutter, external images, and decorative filler.
+
+4. Shared navbar
+----------------
+Structure:
+- Sticky header at top with a blurred, semi-transparent background and bottom border.
+- Centered content container, max width 6xl, horizontal padding responsive to viewport.
+- Left: shield/check icon in a rounded primary tile, followed by wordmark “FinSafe AI”; “AI” uses primary color.
+- Desktop navigation: Home and Integrations links.
+- Active route: soft primary background and primary text.
+- Right desktop actions: theme toggle and primary “Connect your data” button linking to /integrations.
+- Mobile: hamburger button opens a shadcn Sheet containing brand, separator, Home, Integrations, and Connect your data.
+- Navigation must be keyboard accessible with visible focus states.
+
+5. Shared footer
+----------------
+- Top border and muted background.
+- Responsive max-width container.
+- Left: FinSafe AI brand and tagline: “Know what’s going wrong before it costs you.”
+- Right/secondary links: Home, Integrations, Security.
+- Disclaimer: “FinSafe AI provides decision support, not financial or legal advice.”
+
+6. Home page (/)
+----------------
+Purpose: communicate the value proposition within approximately 10 seconds.
+
+6.1 Hero
+- Two-column desktop grid; stacked mobile layout.
+- Left content uses subtle fade-up animation.
+- Badge: “AI Risk Copilot for Banking & Finance Teams”. Rounded pill, primary tint, Sparkles icon.
+- Headline: “Know what’s going wrong with your finances — before it costs you.”
+- Emphasize “before it costs you.” with primary color.
+- Supporting copy: “FinSafe AI connects to your accounting and ERP systems, detects fraud and financial risk, predicts cash shortfalls, and tells you exactly what to do this week.”
+- Primary CTA: “Connect your data” with arrow, links to /integrations.
+- Secondary CTA: “See how it works”, outline variant, smooth-scrolls to #how-it-works.
+- Trust line: “Read-only access • Your data stays yours • Evidence behind every alert”.
+
+6.2 Product preview card
+- UI-only mock dashboard; no external image.
+- Card has soft elevated shadow and subtle primary border.
+- Header: green status dot, “Financial overview”, “Updated just now”, and “Safe mode” badge.
+- Main metric: circular conic gauge showing 62, label “/100 HEALTH”, caption “Financial health”.
+- Chart: Recharts area chart titled “Cash runway forecast”, subtitle “Projected available cash”.
+- Chart trend descends below zero by 120 days.
+- Highlight: “Runs out in 47 days”.
+- Alert chips: “Duplicate invoice · ₹84,500” with warning styling and “Vendor price up 41%” with danger styling.
+
+6.3 Logo strip
+- Muted full-width section with top and bottom borders.
+- Intro: “Works with the tools you already use”.
+- Text-based brand tiles: Zoho Books / ZB, Oracle NetSuite / NS, Odoo / OD.
+- Include muted “More coming soon” chip.
+
+6.4 Problem section
+- Heading: “Most businesses find out about money problems too late.”
+- Three cards:
+  1. Cash crunches arrive with no warning.
+  2. Duplicate payments and vendor overcharges slip through.
+  3. Late-paying customers quietly drain working capital.
+- Each card has a lucide icon, concise description, subtle border, and hover lift.
+
+6.5 USP/features section
+- Heading: “One risk view. Predictions, not just reports.”
+- 2x3 desktop grid, stacked on mobile.
+- Feature cards use icon tile, title, and explanatory paragraph:
+  1. Unified across systems — Zoho Books, NetSuite and Odoo normalized into one financial view.
+  2. Predicts cash shortfalls — 30/60/90-day cash runway with exact drivers.
+  3. Catches fraud & anomalies — duplicate invoices, vendor spikes, and unusual payments with evidence.
+  4. What-if simulator — instantly see the effect of collecting invoices or delaying bills.
+  5. AI that explains, math that’s exact — deterministic calculations; AI explains and recommends.
+  6. Acts, with your approval — drafts collection emails and action plans; nothing sends without approval.
+
+6.6 How it works
+- Section id: how-it-works.
+- Heading: “From connection to action in minutes.”
+- Four-step timeline, horizontal desktop and vertical mobile:
+  1. Connect — securely link accounting/ERP read-only.
+  2. Analyze — normalize data and run risk/fraud checks.
+  3. Predict — forecast cash and score financial health.
+  4. Act — receive prioritized actions and ready-to-send drafts.
+
+6.7 Security and trust
+- Heading: “Built to be trusted with financial data.”
+- Four compact cards: Read-only access, Encrypted credentials, Evidence for every alert, Human-in-the-loop approvals.
+- Supporting line: “Disconnect and delete your data anytime.”
+
+6.8 Final CTA
+- Prominent indigo gradient card.
+- Heading: “See your financial risks in minutes.”
+- Primary button: “Connect your data” to /integrations.
+- Secondary text link: “or explore with sample company data”.
+
+7. Integrations page (/integrations)
+-------------------------------------
+Purpose: connect finance platforms and make the workflow feel functional.
+
+7.1 Header and summary
+- Page title: “Integrations”.
+- Subtitle: “Connect your accounting and ERP systems. FinSafe AI uses read-only access to analyze your financial data.”
+- Summary card: “X of 3 connected” and progress bar.
+- “Analyze my finances” action is disabled until a platform is connected or demo data is loaded. Disabled state should communicate: “Connect at least one platform”.
+
+7.2 Demo data banner
+- Prominent banner copy: “No account handy? Load a sample company (Sharma Distributors) with 12 months of data to explore FinSafe AI.”
+- Button: “Load sample data”.
+- On click: show progress/info toast, simulate loading, mark demo as loaded, show “Demo data loaded” state, and enable analysis.
+
+7.3 Integration cards
+Responsive grid: one column mobile, three columns desktop.
+Each card contains:
+- Brand tile with initials: ZB, NS, or OD.
+- Platform name and description:
+  - Zoho Books: Cloud accounting for invoices, bills and expenses.
+  - Oracle NetSuite: Enterprise ERP for finance, billing and procurement.
+  - Odoo: Open-source ERP with accounting, sales and purchasing.
+- Auth label: Zoho Books OAuth 2.0; Oracle NetSuite OAuth 2.0; Odoo API key.
+- Status badge: Not connected, Connecting…, Connected, or Error. Current normal flow uses disconnected, connecting, connected.
+- Read scope list: Invoices & receivables; Bills & payables; Customers & vendors.
+- Primary Connect button when disconnected.
+
+7.4 Connection dialog
+- shadcn Dialog with title “Connect {platform}”.
+- Explain: “FinSafe AI will request read-only access to invoices, bills, and contacts. We never modify your data.”
+- Checkbox: “I understand”. Authorize is unavailable until checked.
+- Cancel and Authorize actions.
+- Odoo adds fields: Odoo URL, Database, API key.
+- NetSuite adds field: Account ID.
+- On authorization: close dialog, show Connecting… for about 1.5 seconds, then Connected toast.
+
+7.5 Connected state
+- Green check area with “Last synced: just now” and “1,248 records synced”.
+- Actions: “Sync now” outline button and “Disconnect” destructive/ghost button.
+- Disconnect opens confirmation dialog: “This will remove synced data from FinSafe AI”.
+- Sync action shows success toast.
+
+7.6 Security and FAQ
+- Security section list: Read-only scopes only; Credentials encrypted at rest; Disconnect and delete anytime.
+- FAQ accordion questions:
+  1. Is my data safe?
+  2. Can FinSafe AI change my accounting data?
+  3. Which data do you read?
+
+8. Interaction and accessibility requirements
+---------------------------------------------
+- All controls must be keyboard reachable.
+- Dialogs, Sheet, and accordion require accessible titles/labels.
+- Buttons and icon-only controls require accessible names.
+- Maintain visible focus rings and sufficient color contrast.
+- Use semantic main, header, nav, section, footer, headings, and lists.
+- Use responsive flex/grid layouts rather than absolute positioning for primary layout.
+- Respect reduced-motion preferences where practical.
+- Never use emojis as interface icons; use lucide icons.
+- Avoid raw hardcoded theme colors in component layout when semantic tokens exist.
+
+9. Current implementation notes
+-------------------------------
+- Light theme is explicitly forced as the default by removing the OS-level prefers-color-scheme dark override from app/globals.css.
+- Manual dark mode remains supported by the .dark token block and ThemeToggle, so a user can still switch themes intentionally.
